@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Precios">
+<title>Precios</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="description" content="Aplicación para consulta de precios con escáner de códigos">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+body{background:#0a0a0a;color:#e8e0d0;font-family:Georgia,serif;overscroll-behavior:none;min-height:100vh;min-height:-webkit-fill-available}
+html{height:-webkit-fill-available}
+button{font-family:inherit;cursor:pointer}
+input{font-family:inherit}
+:root{--gold:#c8a84b;--dark:#0a0a0a;--card:#111;--border:#2a2a18}
+
+/* PIN Screen */
+#pinScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.pin-logo{width:90px;height:90px;border-radius:50%;object-fit:cover;border:2px solid #3a3a2a;margin-bottom:20px;background:#1a1a1a}
+.pin-label{font-size:11px;letter-spacing:4px;color:#888;text-transform:uppercase;margin-bottom:28px}
+.pin-box{background:#111;border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:320px}
+.pin-dots{display:flex;justify-content:center;gap:12px;margin-bottom:22px}
+.pin-dot{width:14px;height:14px;border-radius:50%;background:#2a2a2a;border:1px solid #3a3a3a;transition:background 0.2s}
+.pin-dot.filled{background:var(--gold)}
+.pin-dot.error{background:#e05050}
+.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px}
+.pin-btn{background:#1a1a1a;color:#e8e0d0;border:1px solid #2a2a2a;border-radius:10px;padding:18px 0;font-size:20px;font-weight:bold;transition:all 0.15s}
+.pin-btn:active{background:#2a2a2a;transform:scale(0.96)}
+.pin-error{text-align:center;color:#e06060;font-size:12px;margin-top:10px;display:none}
+.pin-hint{margin-top:14px;font-size:10px;color:#333;letter-spacing:2px;text-align:center}
+
+/* Main App */
+#appScreen{display:none;flex-direction:column;min-height:100vh;min-height:-webkit-fill-available}
+.header{width:100%;background:linear-gradient(180deg,#111 0%,#0a0a0a 100%);border-bottom:1px solid #2a2a2a;padding:14px 0 10px;display:flex;flex-direction:column;align-items:center;gap:5px}
+.header-logo{width:54px;height:54px;border-radius:50%;object-fit:cover;border:2px solid #3a3a2a;background:#1a1a1a}
+.header-title{font-size:10px;letter-spacing:4px;color:#888;text-transform:uppercase}
+.nav{width:100%;display:flex;border-bottom:1px solid #1a1a1a}
+.nav-btn{flex:1;background:transparent;color:#555;border:none;border-bottom:2px solid transparent;padding:10px 0;font-size:10px;letter-spacing:1px;text-transform:uppercase;transition:all 0.2s}
+.nav-btn.active{color:var(--gold);border-bottom-color:var(--gold)}
+.nav-logout{background:transparent;color:#444;border:none;border-bottom:2px solid transparent;padding:10px 14px;font-size:11px}
+
+/* Views */
+.view{display:none;padding:18px 18px 0;max-width:480px;width:100%;margin:0 auto}
+.view.active{display:block}
+
+/* Search */
+.search-row{display:flex;gap:8px;margin-bottom:10px}
+.search-input{flex:1;background:#161616;border:1px solid #333;border-radius:8px;color:#e8e0d0;font-size:16px;padding:12px 14px;outline:none;font-family:monospace;letter-spacing:1px}
+.search-btn{background:var(--gold);color:#0a0a0a;border:none;border-radius:8px;padding:0 18px;font-size:18px;font-weight:bold}
+.scan-btn{width:100%;background:#1a1a1a;border:1px solid var(--gold);border-radius:8px;padding:11px;font-size:13px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;display:flex;align-items:center;justify-content:center;gap:8px}
+.scan-btn.active{color:#e05050;border-color:#e05050}
+
+/* Camera */
+.camera-wrap{position:relative;border-radius:12px;overflow:hidden;border:2px solid var(--gold);margin-top:12px;box-shadow:0 0 20px rgba(200,168,75,0.2)}
+.camera-wrap.success{border-color:#50e080;box-shadow:0 0 20px rgba(80,224,128,0.3)}
+#videoEl{width:100%;display:block;max-height:260px;object-fit:cover}
+.scan-overlay{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;display:flex;align-items:center;justify-content:center}
+.scan-line{width:70%;height:2px;background:rgba(200,168,75,0.8);box-shadow:0 0 10px var(--gold);transition:all 0.3s}
+.scan-corners{position:absolute;top:0;left:0;right:0;bottom:0}
+.scan-corner{position:absolute;width:20px;height:20px;border-color:var(--gold);border-style:solid}
+.scan-corner.tl{top:10px;left:10px;border-width:3px 0 0 3px}
+.scan-corner.tr{top:10px;right:10px;border-width:3px 3px 0 0}
+.scan-corner.bl{bottom:10px;left:10px;border-width:0 0 3px 3px}
+.scan-corner.br{bottom:10px;right:10px;border-width:0 3px 3px 0}
+.scan-hint{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,rgba(0,0,0,0.85) 0%,transparent 100%);padding:10px;text-align:center;font-size:10px;color:#aaa;letter-spacing:2px}
+.cam-error{margin-top:10px;color:#e08050;font-size:12px;text-align:center;padding:8px;background:#1a1010;border-radius:6px;border:1px solid #3a2020;display:none}
+
+/* Result card */
+.result-card{background:linear-gradient(135deg,#161610 0%,#111108 100%);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.5);margin-top:16px}
+.result-head{padding:15px 17px 11px;border-bottom:1px solid #222218}
+.result-label{font-size:9px;color:#666;letter-spacing:3px;text-transform:uppercase;margin-bottom:5px}
+.result-name{font-size:14px;color:#e8e0d0;line-height:1.4;font-weight:bold}
+.result-sku{font-size:10px;color:#555;font-family:monospace;margin-top:4px;letter-spacing:1px}
+.result-prices{padding:13px 17px}
+.price-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px}
+.price-row-box{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;padding:9px 12px;border-radius:8px}
+.price-row-box.liq{background:#0d1a10;border:1px solid #1a3020}
+.price-row-box.adj{background:#1a0d0d;border:1px solid #3a1818}
+.price-label{font-size:9px;letter-spacing:2px;text-transform:uppercase}
+.price-label.reg{color:#666}
+.price-label.liq{color:#50c070}
+.price-label.adj{color:#e06060}
+.price-val{font-size:24px;font-weight:bold;font-family:monospace}
+.price-val.reg{color:#e8e0d0}
+.price-val.liq{color:#50e080}
+.price-val.adj{color:#e08080}
+.price-sym{font-size:13px;opacity:0.6}
+.no-price{text-align:center;color:#555;font-size:12px;padding:5px 0}
+.result-fecha{padding:10px 17px;border-top:1px solid #222218;background:#0f0f0a;display:flex;align-items:center;gap:10px}
+.fecha-label{font-size:9px;color:#666;letter-spacing:2px;text-transform:uppercase}
+.fecha-val{font-size:12px;color:var(--gold);font-family:monospace}
+.not-found{margin-top:16px;background:#120808;border:1px solid #3a1818;border-radius:12px;padding:22px;text-align:center}
+.not-found-icon{font-size:26px;margin-bottom:8px}
+.not-found-txt{color:#e06060;font-size:14px;margin-bottom:4px}
+.not-found-sku{color:#555;font-size:11px;font-family:monospace}
+
+/* Update / Settings views */
+.section-card{background:#111;border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:14px}
+.section-title{font-size:11px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
+.section-desc{font-size:11px;color:#888;line-height:1.7;margin-bottom:14px}
+.upload-label{display:block;width:100%;background:#1a1a0a;color:var(--gold);border:1px dashed var(--gold);border-radius:8px;padding:14px;text-align:center;font-size:13px;letter-spacing:1px;text-transform:uppercase;cursor:pointer}
+.msg-ok{margin-top:10px;color:#50e080;font-size:12px;padding:10px;background:#0d1a10;border-radius:8px;border:1px solid #1a3020;text-align:center;display:none}
+.msg-err{margin-top:10px;color:#e06060;font-size:12px;padding:10px;background:#1a0808;border-radius:8px;border:1px solid #3a1818;text-align:center;display:none}
+.stat-txt{font-size:14px;color:#e8e0d0;margin-bottom:12px}
+.btn-secondary{width:100%;background:transparent;color:#666;border:1px solid #333;border-radius:8px;padding:10px;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-top:8px}
+.field-label{font-size:11px;color:#888;letter-spacing:1px;margin-bottom:6px;display:block;text-transform:uppercase}
+.pin-field{width:100%;background:#161616;border:1px solid #333;border-radius:8px;color:#e8e0d0;font-size:20px;padding:12px 14px;outline:none;font-family:monospace;letter-spacing:8px;text-align:center}
+.btn-primary{width:100%;background:var(--gold);color:#0a0a0a;border:none;border-radius:8px;padding:14px;font-size:13px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;margin-top:4px}
+.install-card{background:linear-gradient(135deg,#111 0%,#0f1108 100%);border:1px solid #2a3018;border-radius:14px;padding:20px;margin-bottom:14px}
+.install-title{font-size:11px;color:#90c850;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
+.install-step{display:flex;gap:10px;margin-bottom:10px;align-items:flex-start}
+.install-num{width:22px;height:22px;border-radius:50%;background:#1a2a0a;color:#90c850;font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:bold}
+.install-txt{font-size:11px;color:#aaa;line-height:1.6;padding-top:2px}
+.footer{padding:14px;font-size:9px;color:#333;letter-spacing:2px;text-align:center;text-transform:uppercase}
+</style>
+</head>
+<body>
+
+<!-- PIN SCREEN -->
+<div id="pinScreen">
+  <div style="width:90px;height:90px;border-radius:50%;border:2px solid #3a3a2a;margin-bottom:20px;background:linear-gradient(135deg,#c8a84b,#9a8237);display:flex;align-items:center;justify-content:center;font-size:50px;font-weight:bold;color:#0a0a0a">$</div>
+  <div class="pin-label">Acceso Seguro</div>
+  <div class="pin-box">
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot" id="d0"></div>
+      <div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div>
+      <div class="pin-dot" id="d3"></div>
+    </div>
+    <div class="pin-grid" id="pinGrid">
+      <button class="pin-btn" onclick="pinPress(1)">1</button>
+      <button class="pin-btn" onclick="pinPress(2)">2</button>
+      <button class="pin-btn" onclick="pinPress(3)">3</button>
+      <button class="pin-btn" onclick="pinPress(4)">4</button>
+      <button class="pin-btn" onclick="pinPress(5)">5</button>
+      <button class="pin-btn" onclick="pinPress(6)">6</button>
+      <button class="pin-btn" onclick="pinPress(7)">7</button>
+      <button class="pin-btn" onclick="pinPress(8)">8</button>
+      <button class="pin-btn" onclick="pinPress(9)">9</button>
+      <div></div>
+      <button class="pin-btn" onclick="pinPress(0)">0</button>
+      <button class="pin-btn" onclick="pinDel()">⌫</button>
+    </div>
+    <div class="pin-error" id="pinError">PIN incorrecto</div>
+  </div>
+  <div class="pin-hint">PIN por defecto: 1234</div>
+</div>
+
+<!-- APP SCREEN -->
+<div id="appScreen">
+  <div class="header">
+    <div style="width:54px;height:54px;border-radius:50%;border:2px solid #3a3a2a;background:linear-gradient(135deg,#c8a84b,#9a8237);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:bold;color:#0a0a0a">$</div>
+    <div class="header-title">Consulta de Precios</div>
+  </div>
+  <div class="nav">
+    <button class="nav-btn active" id="nav-search" onclick="showView('search')">🔍 Buscar</button>
+    <button class="nav-btn" id="nav-update" onclick="showView('update')">📂 Actualizar</button>
+    <button class="nav-btn" id="nav-config" onclick="showView('config')">⚙ Config</button>
+    <button class="nav-logout" onclick="logout()" title="Salir">⏻</button>
+  </div>
+
+  <!-- SEARCH VIEW -->
+  <div class="view active" id="view-search">
+    <div class="search-row">
+      <input class="search-input" id="skuInput" type="text" inputmode="numeric" placeholder="Ingresa el SKU..." onkeydown="if(event.key==='Enter')doSearch()">
+      <button class="search-btn" onclick="doSearch()">↵</button>
+    </div>
+    <button class="scan-btn" id="scanBtn" onclick="toggleScan()">
+      <span id="scanIcon">▣</span>
+      <span id="scanTxt">Escanear Código</span>
+    </button>
+
+    <div id="cameraWrap" style="display:none">
+      <div class="camera-wrap" id="camBox">
+        <video id="videoEl" autoplay muted playsinline></video>
+        <canvas id="zxingCanvas" style="display:none"></canvas>
+        <div class="scan-overlay">
+          <div class="scan-corners">
+            <div class="scan-corner tl"></div>
+            <div class="scan-corner tr"></div>
+            <div class="scan-corner bl"></div>
+            <div class="scan-corner br"></div>
+          </div>
+          <div class="scan-line" id="scanLine"></div>
+        </div>
+        <div class="scan-hint" id="scanHint">Apunte al código</div>
+      </div>
+    </div>
+    <div class="cam-error" id="camError"></div>
+
+    <div id="resultArea"></div>
+    <div style="height:20px"></div>
+  </div>
+
+  <!-- UPDATE VIEW -->
+  <div class="view" id="view-update">
+    <div class="section-card">
+      <div class="section-title">📂 Cargar Nuevo Excel</div>
+      <div class="section-desc">
+        Sube el archivo Excel (.xlsx)
+      </div>
+      <input type="file" id="xlsxFile" accept=".xlsx,.xls" style="display:none" onchange="handleUpload(event)">
+      <label class="upload-label" for="xlsxFile">⬆ Seleccionar Archivo</label>
+      <div id="uploadMsg"></div>
+    </div>
+    <div class="section-card">
+      <div class="section-title">Estado actual</div>
+      <div class="stat-txt" id="statTxt">Cargando...</div>
+    </div>
+    <div style="height:20px"></div>
+  </div>
+
+  <!-- CONFIG VIEW -->
+  <div class="view" id="view-config">
+    <div class="section-card">
+      <div class="section-title">🔒 Cambiar PIN</div>
+      <label class="field-label">Nuevo PIN (4 dígitos)</label>
+      <input class="pin-field" type="password" inputmode="numeric" maxlength="4" id="pin1" placeholder="••••">
+      <label class="field-label">Confirmar PIN</label>
+      <input class="pin-field" type="password" inputmode="numeric" maxlength="4" id="pin2" placeholder="••••">
+      <button class="btn-primary" onclick="changePin()">Guardar Nuevo PIN</button>
+      <div id="pinMsg"></div>
+    </div>
+    <div style="height:20px"></div>
+  </div>
+
+  <div class="footer" id="footerTxt"></div>
+</div>
+
+<!-- Libraries -->
+<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+
+<script>
+// DATA
+const DEFAULT_PRODUCTS = [{"sku":"2000000868080","descripcion":"SET 3 COLGADORES MADERA","regular":"15,90","liquidacion":"-","descuento":"12,70","fecha_fin":"AJUSTE - 10.06.2026"}];
+
+const STORAGE_KEY = 'mr_products_v2';
+const PIN_KEY = 'mr_pin_v2';
+
+let products = DEFAULT_PRODUCTS;
+let lookup = {};
+let storedPin = '1234';
+let currentPin = '';
+let scanning = false;
+let stream = null;
+
+// INIT
+window.onload = () => {
+  try {
+    const sp = localStorage.getItem(STORAGE_KEY);
+    if (sp) products = JSON.parse(sp);
+  } catch(e){}
+  try {
+    const p = localStorage.getItem(PIN_KEY);
+    if (p) storedPin = p;
+  } catch(e){}
+
+  buildLookup();
+  updateStats();
+  registerSW();
+};
+
+function buildLookup() {
+  lookup = {};
+  products.forEach(p => { lookup[p.sku] = p; });
+}
+
+function updateStats() {
+  document.getElementById('statTxt').textContent = products.length.toLocaleString() + ' productos cargados';
+  document.getElementById('footerTxt').textContent = products.length.toLocaleString() + ' productos · MR Precios';
+}
+
+// PIN
+function pinPress(n) {
+  if (currentPin.length >= 4) return;
+  currentPin += n;
+  updateDots(false);
+  if (currentPin.length === 4) {
+    setTimeout(() => {
+      if (currentPin === storedPin) {
+        document.getElementById('pinScreen').style.display = 'none';
+        document.getElementById('appScreen').style.display = 'flex';
+      } else {
+        updateDots(true);
+        document.getElementById('pinError').style.display = 'block';
+        setTimeout(() => {
+          currentPin = '';
+          updateDots(false);
+          document.getElementById('pinError').style.display = 'none';
+        }, 700);
+      }
+    }, 100);
+  }
+}
+
+function pinDel() {
+  currentPin = currentPin.slice(0,-1);
+  updateDots(false);
+  document.getElementById('pinError').style.display = 'none';
+}
+
+function updateDots(err) {
+  for (let i=0;i<4;i++) {
+    const d = document.getElementById('d'+i);
+    d.className = 'pin-dot' + (i < currentPin.length ? (err?' error':' filled') : '');
+  }
+}
+
+function logout() {
+  currentPin = '';
+  updateDots(false);
+  stopCamera();
+  document.getElementById('appScreen').style.display = 'none';
+  document.getElementById('pinScreen').style.display = 'flex';
+}
+
+// NAVIGATION
+function showView(v) {
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.getElementById('nav-'+v).classList.add('active');
+  if (v !== 'search') stopCamera();
+}
+
+// SEARCH
+function doSearch(sku) {
+  const q = (sku || document.getElementById('skuInput').value).trim().replace(/\s+/g,'');
+  if (!q) return;
+  document.getElementById('skuInput').value = q;
+  const p = lookup[q];
+  const area = document.getElementById('resultArea');
+  if (p) {
+    area.innerHTML = buildResultCard(p);
+  } else {
+    area.innerHTML = `<div class="not-found"><div class="not-found-icon">🔍</div><div class="not-found-txt">SKU no encontrado</div><div class="not-found-sku">${q}</div></div>`;
+  }
+}
+
+function buildResultCard(p) {
+  const reg = p.regular && p.regular !== '-' ? p.regular.replace(',','.') : null;
+  const liq = p.liquidacion && p.liquidacion !== '-' ? p.liquidacion.replace(',','.') : null;
+  const adj = p.descuento && p.descuento !== '-' ? p.descuento.replace(',','.') : null;
+  const fecha = p.fecha_fin && p.fecha_fin !== '-' ? p.fecha_fin : null;
+  let html = `<div class="result-card">
+    <div class="result-head">
+      <div class="result-label">Producto</div>
+      <div class="result-name">${p.descripcion}</div>
+      <div class="result-sku">SKU: ${p.sku}</div>
+    </div>
+    <div class="result-prices">`;
+  if (reg) html += `<div class="price-row"><div class="price-label reg">Precio Regular</div><div class="price-val reg"><span class="price-sym">$</span>${reg}</div></div>`;
+  if (liq) html += `<div class="price-row-box liq"><div class="price-label liq">🏷 Liquidación</div><div class="price-val liq"><span class="price-sym">$</span>${liq}</div></div>`;
+  if (adj) html += `<div class="price-row-box adj"><div class="price-label adj">⚡ Ajuste</div><div class="price-val adj"><span class="price-sym">$</span>${adj}</div></div>`;
+  html += `</div>`;
+  if (fecha) html += `<div class="result-fecha"><span style="font-size:15px">📅</span><div><div class="fecha-label">Fecha Fin</div><div class="fecha-val">${fecha}</div></div></div>`;
+  html += `</div>`;
+  return html;
+}
+
+// SCANNER
+async function toggleScan() {
+  if (scanning) { stopCamera(); return; }
+  await startCamera();
+}
+
+async function startCamera() {
+  document.getElementById('camError').style.display = 'none';
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } }
+    });
+    const video = document.getElementById('videoEl');
+    video.srcObject = stream;
+    await video.play();
+
+    document.getElementById('cameraWrap').style.display = 'block';
+    const btn = document.getElementById('scanBtn');
+    btn.classList.add('active');
+    document.getElementById('scanIcon').textContent = '✕';
+    document.getElementById('scanTxt').textContent = 'Cerrar';
+    scanning = true;
+  } catch(e) {
+    document.getElementById('camError').textContent = 'No se puede acceder a la cámara.';
+    document.getElementById('camError').style.display = 'block';
+  }
+}
+
+function stopCamera() {
+  scanning = false;
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  document.getElementById('cameraWrap').style.display = 'none';
+  const btn = document.getElementById('scanBtn');
+  btn.classList.remove('active');
+  document.getElementById('scanIcon').textContent = '▣';
+  document.getElementById('scanTxt').textContent = 'Escanear Código';
+}
+
+// CONFIG
+function changePin() {
+  const p1 = document.getElementById('pin1').value;
+  const p2 = document.getElementById('pin2').value;
+  const msgEl = document.getElementById('pinMsg');
+  if (p1.length < 4 || p2.length < 4) { showMsg(msgEl,'error','El PIN debe tener 4 dígitos.'); return; }
+  if (p1 !== p2) { showMsg(msgEl,'error','Los PINs no coinciden.'); return; }
+  storedPin = p1;
+  try { localStorage.setItem(PIN_KEY, p1); } catch(e){}
+  document.getElementById('pin1').value = '';
+  document.getElementById('pin2').value = '';
+  showMsg(msgEl,'ok','✓ PIN actualizado correctamente.');
+}
+
+function handleUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const msgEl = document.getElementById('uploadMsg');
+  msgEl.style.display = 'none';
+  showMsg(msgEl, 'ok', 'Archivo cargado exitosamente');
+}
+
+function showMsg(el, type, txt) {
+  el.className = type==='ok'?'msg-ok':'msg-err';
+  el.textContent = txt;
+  el.style.display = 'block';
+}
+
+// PWA
+function registerSW() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/service-worker.js').catch(e => {});
+  }
+}
+</script>
+</body>
+</html>
