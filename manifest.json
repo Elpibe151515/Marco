@@ -1,0 +1,49 @@
+{
+  "name": "Precios",
+  "short_name": "Precios",
+  "description": "Aplicación para gestionar y visualizar precios con escaneo de códigos",
+  "start_url": "/MR_Precios.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23000000' width='192' height='192'/><text x='50%' y='50%' font-size='80' fill='white' text-anchor='middle' dominant-baseline='middle' font-weight='bold'>$</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%23000000' width='512' height='512'/><text x='50%' y='50%' font-size='300' fill='white' text-anchor='middle' dominant-baseline='middle' font-weight='bold'>$</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["shopping", "productivity"],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect fill='%23f5f5f5' width='540' height='720'/><text x='50%' y='360' font-size='60' fill='%23000000' text-anchor='middle' dominant-baseline='middle'>Precios</text></svg>",
+      "sizes": "540x720",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Escanear Código",
+      "short_name": "Escanear",
+      "description": "Abre el escáner de códigos",
+      "url": "/MR_Precios.html?action=scan",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23000000' width='192' height='192'/><rect fill='none' stroke='white' stroke-width='20' x='30' y='30' width='132' height='132'/></svg>",
+          "sizes": "192x192",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ]
+}
